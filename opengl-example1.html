@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Three框架</title>
+        <script src="three.js"></script>
+        <style type="text/css">
+            div#canvas-frame {
+                border: none;
+                cursor: pointer;
+                width: 640px;
+                height: 480px;
+            }
+
+        </style>
+        <script id="shader-fs" type="x-shader/x-fragment">
+          void main(void) {
+            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+          }
+        </script>
+
+        <script id="shader-vs" type="x-shader/x-vertex">
+            attribute vec3 aVertexPosition;
+
+            uniform mat4 uMVMatrix;
+            uniform mat4 uPMatrix;
+
+            void main(void) {
+                gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            }
+        </script>
+    </head>
+
+    <body>
+        <canvas id="canvas-frame"></canvas >
+    </body>
+    <script>
+        var gl;
+
+        function start() {
+            var canvas = document.getElementById('canvas-frame');
+
+            gl = initWebGL(canvas);
+
+            if (gl) {
+                gl.clearColor(0.0, 0.0, 0.0, 1.0);
+                gl.enable(gl.DEPTH_TEST);
+                gl.depthFunc(gl.LEQUAL);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            }
+        }
+
+        function initWebGL(canvas) {
+            window.gl = null;
+
+            try {
+                gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+            } catch (e) {
+
+            }
+
+            if (!gl) {
+                alert("WebGL初始化失败，可能是因为您的浏览器不支持。");
+
+                gl = null;
+
+            }
+            return gl;
+        }
+
+        function initShaders() {
+            var frameShader = getSharder(gl, 'shader-fs');
+            var vertexShader = getSharder(gl, 'shader-fs');
+
+            shaderProgram = gl.createProgram();
+            gl.attachShader(shaderProgram, vertexShader);
+            gl.attachShader(shaderProgram, frameShader);
+            gl.linkProgram(shaderProgram);
+
+            if (!gl.getProgramPrameter(shaderProgram, gl.LINK_STATUS)) {
+                alert("Unable to initialize the shader program.");
+            }
+
+            gl.useProgram(shaderProgram);
+
+            vertexPositionAttribute = gl.getAttributeLocation(shaderProgram, 'aVertexPosition');
+            gl.enableVertexAttribArray(vertexPositionAttribute);
+        }
+
+        function getShader(gl, id) {
+            var shaderScript, theSource, currentChild, shader;
+
+            shaderScript = document.getElementById(id);
+
+            if (!shaderScript) {
+                return null;
+            }
+
+            theSource = '';
+            currentChild = shaderScript.firstChild;
+            while (currentChild) {
+                if (currentChild.nodeType == currentChild.TEXT_NODE) {
+                    theSource += currentChild.textContent;
+                }
+
+                currentChild = currentChild.nextSibling;
+            }
+
+            if (shaderScript.type == 'x-shader/x-fragment') {
+                shader = gl.createShader(gl.FRAMENT_SHADER);
+            } else if (shaderScript.type == 'x-shader/x-vertex') {
+                shader = gl.createShader(gl.VERTEX_SHADER);
+            } else {
+                return null;
+            }
+
+            gl.shaderSource(shader, theSource);
+            gl.compileShader(shader);
+
+            if (!gl.getSharderParameter(shader, gl.COMPILE_STATUS)) {
+                alert("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));
+                return null;
+            }
+
+             return shader;
+        }
+
+        function drawScene() {
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            perspectiveMatrix = makePerspective(45, 640.0/480.0, 0.1, 100.0);
+
+            loadIdentity();
+            mvTranslate([-0.0, 0.0, -6.0]);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, squareVerticesBuffer);
+            gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+            setMatrixUniforms();
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+
+        start();
+    </script>
+</html>
